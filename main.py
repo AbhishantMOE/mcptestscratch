@@ -1,54 +1,53 @@
-from flask import Flask, jsonify
+from fastmcp import FastMCP
 import requests
+from typing import Any
 
-app = Flask(__name__)
+mcp = FastMCP(name="MoEngage API Client")
 
-@app.get("/")
-def hello_world():
-    return "<p>Hello, World!</p>"
+@mcp.tool()
+def check_deeplink(
+    db_name: str, 
+    user_id: str, 
+    campaign_id: str, 
+    date: str, 
+    region: str
+) -> Any:
+    """
+    Fetches the result of the MoEngage check-deeplink API.
 
-@app.post("/myapi")
-def hit_api():
+    Args:
+        db_name: The database name, e.g., "NDTVProfit".
+        user_id: The unique identifier for the user.
+        campaign_id: The unique identifier for the campaign.
+        date: The date for the request in YYYY-MM-DD format.
+        region: The data center region, e.g., "DC1".
+    """
     api_url = "https://intercom-api-gateway.moengage.com/v2/iw/check-deeplink"
-    bearer_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzb3VyY2UiOiJpbnRlcmNvbSIsImNoYW5uZWwiOiJhcGkiLCJpYXQiOjE3NTY4MDA0NzcsImV4cCI6MTc1Njg4Njg3N30.6cEK6N8TXzoOlCm-phlYEgKbq8vofqZ7x6uoBjeznOg"
+    bearer_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzb3VyY2UiOiJpbnRlcmNvbSIsImNoYW5uZWwiOiJhcGkiLCJpYXQiOjE3NTY5NTM3NzgsImV4cCI6MTc1NzA0MDE3OH0.4vV-MBv4X4UGw1DBX8vsyYa5L91g5ycZqHtH7KoqW4k"  # Use a valid token
 
     headers = {
         'Authorization': f'Bearer {bearer_token}',
         'Content-Type': 'application/json'
     }
 
+    # The payload is now dynamically created from the function arguments
     payload = {
-        "db_name": "NDTVProfit",
-        "user_id": "eb50c9bb-fac4-44c7-b97d-36ab374c5ef8",
-        "campaign_id": "68b2cd88c85096a0c1603cf0",
-        "date": "2025-08-30",
-        "region":"DC1"
+        "db_name": db_name,
+        "user_id": user_id,
+        "campaign_id": campaign_id,
+        "date": date,
+        "region": region
     }
 
     try:
-        # 4. Make the POST request with the URL, headers, and json payload
         response = requests.post(api_url, headers=headers, json=payload)
-        
-        # 5. Handle potential HTTP errors
         response.raise_for_status()
-
-        # 6. Process the response from the third-party API
         api_response_data = response.json()
-
-        print(api_response_data.get('status'))
-
         return api_response_data
-        
-        # return jsonify({
-        #     "message": "Item created successfully!",
-        #     "api_response": api_response_data
-        # }), 200
-
     except requests.exceptions.HTTPError as err:
-        return jsonify({"error": f"API request failed: {err}"}), 500
+        return {"error": f"API request failed: {err}"}
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"An error occurred: {e}"}), 500
-    #return "<p>Hello, World!</p>"
+        return {"error": f"An error occurred: {e}"}
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    mcp.run()
